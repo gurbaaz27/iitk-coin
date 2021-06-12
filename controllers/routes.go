@@ -26,6 +26,7 @@ func HandleRequests() {
 	http.HandleFunc("/signup", signUp)
 	http.HandleFunc("/login", logIn)
 	http.Handle("/secretpage", isLogin(secretPage))
+	log.Println("Serving at 8080")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
