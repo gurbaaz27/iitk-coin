@@ -45,9 +45,6 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// database.db, _ := sql.Open("sqlite3", "./database.database.db")
-	// defer database.db.Close()
-
 	fmt.Println(r.URL.Path)
 	switch r.Method {
 	case "GET":
@@ -76,9 +73,6 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// db, _ := sql.Open("sqlite3", "./database.db")
-	// defer db.Close()
-
 	fmt.Println(r.URL.Path)
 	switch r.Method {
 	case "GET":
@@ -91,6 +85,7 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 		err := decoder.Decode(&loginRequest)
 		checkErr(err)
 		log.Println(loginRequest)
+		log.Println(" user valid :", database.UserValid(loginRequest))
 		if database.UserValid(loginRequest) {
 			expirationTime := time.Now().Add(15 * time.Minute)
 			claims := &models.CustomClaims{

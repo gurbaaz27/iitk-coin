@@ -21,7 +21,7 @@ func InitialiseDB() {
 	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
-	statement, err := MyDB.Prepare("CREATE TABLE IF NOT EXISTS User (id INTEGER PRIMARY KEY, rollno INTEGER, name TEXT, password TEXT)")
+	statement, err := MyDB.Prepare("CREATE TABLE IF NOT EXISTS User (rollno INTEGER, name TEXT, password TEXT)")
 	checkErr(err)
 	log.Println("Database opened and table created successfully!")
 	statement.Exec()
@@ -54,7 +54,8 @@ func UserValid(user models.LoginRequest) bool {
 		var rollno int64
 		var name string
 		var password string
-		rows.Scan(&rollno, &name, &password)
+		err = rows.Scan(&rollno, &name, &password)
+		checkErr(err)
 		if user.Rollno == rollno && CheckPasswords(password, user.Password) {
 			return true
 		}
@@ -67,7 +68,7 @@ func UserExists(user models.User) bool {
 	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
-	err = MyDB.QueryRow("SELECT rollno FROM User WHERE rollno = ?").Scan(&user.Rollno)
+	err = MyDB.QueryRow("SELECT rollno FROM User WHERE rollno = ?", user.Rollno).Scan(&user.Rollno)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			log.Print(err)
