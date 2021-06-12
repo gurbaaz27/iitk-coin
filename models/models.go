@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 type User struct {

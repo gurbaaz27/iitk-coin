@@ -6,10 +6,14 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gurbaaz27/iitk-coin/database"
 	"github.com/gurbaaz27/iitk-coin/models"
 )
+
+var jwtKey = []byte("gurbaaz")
 
 func checkErr(err error) {
 	if err != nil {
@@ -17,12 +21,21 @@ func checkErr(err error) {
 	}
 }
 
+func HandleRequests() {
+	http.HandleFunc("/", homePage)
+	http.HandleFunc("/signup", signUp)
+	http.HandleFunc("/login", logIn)
+	http.Handle("/secretpage", isLogin(secretPage))
+
+	log.Fatal(http.ListenAndServe(":8000", nil))
+}
+
 func homePage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Welcome to Home Page of IITK Coin. There are 3 useful endpoints are:- /signup, /login, /secretpage")
 }
 
 func secretPage(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Congrats! The fact that you have reached here is proof that you are successfully logged in!"))
+	io.WriteString(w, "Congrats! The fact that you have reached here is proof that you are successfully logged in!")
 }
 
 func signUp(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +57,9 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		var newUser models.User
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&newUser)
-		checkError(err)
+		checkErr(err)
 		log.Println(newUser)
-		database.AddUser(database.MyDB, newUser)
+		database.AddUser(newUser)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(newUser)
 
@@ -73,38 +86,30 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome to Login Page!\nSend a POST request to login into iitkcoin.\n"))
 
 	case "POST":
-
 		var loginRequest models.LoginRequest
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&loginRequest)
-		checkError(err)
+		checkErr(err)
 		log.Println(loginRequest)
-		if UserValid(db, loginRequest) {
-
-			// Declare the expiration time of the token
-			// here, we have kept it as 5 minutes
-			expirationTime := time.Now().Add(10 * time.Minute)
-			// Create the JWT claims, which includes the username and expiry time
-			claims := &CustomClaims{
+		if database.UserValid(loginRequest) {
+			expirationTime := time.Now().Add(15 * time.Minute)
+			claims := &models.CustomClaims{
 				Rollno: loginRequest.Rollno,
 				StandardClaims: jwt.StandardClaims{
-					// In JWT, the expiry time is expressed as unix milliseconds
 					ExpiresAt: expirationTime.Unix(),
 				},
 			}
 
-			// Declare the token with the algorithm used for signing, and the claims
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-			// Create the JWT string
 			tokenString, err := token.SignedString(jwtKey)
-			CheckError(err)
-			log.Println("TOKEN:", tokenString)
+			checkErr(err)
+			log.Println("Token is :-", tokenString)
 			http.SetCookie(w, &http.Cookie{
 				Name:    "token",
 				Value:   tokenString,
 				Expires: expirationTime,
 			})
-			w.Write([]byte("U son of a bitch. I am in \n"))
+			w.Write([]byte("Successfully logged in! #andhalogin\n"))
 		} else {
 			w.Write([]byte("F....Invalid user credentials.\n"))
 		}
@@ -116,11 +121,36 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func HandleRequests() {
-	http.HandleFunc("/", homePage)
-	http.HandleFunc("/signup", signUp)
-	http.HandleFunc("/login", logIn)
-	http.HandleFunc("/secretpage", secretPage)
+func isLogin(endpoint func(http.ResponseWriter, *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		tknStr := cookie.Value
+		claims := &models.CustomClaims{}
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
+		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil {
+			if err == jwt.ErrSignatureInvalid {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if !tkn.Valid {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		endpoint(w, r)
+	})
 }
