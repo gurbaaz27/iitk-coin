@@ -27,7 +27,7 @@ func HandleRequests() {
 	http.HandleFunc("/login", logIn)
 	http.Handle("/secretpage", isLogin(secretPage))
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {

@@ -18,7 +18,7 @@ func checkErr(err error) {
 }
 
 func InitialiseDB() {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.MyDB")
+	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
 	statement, err := MyDB.Prepare("CREATE TABLE IF NOT EXISTS User (id INTEGER PRIMARY KEY, rollno INTEGER, name TEXT, password TEXT)")
