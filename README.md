@@ -19,26 +19,26 @@ This repository contains the code for the IITK Coin project done by Gurbaaz Sing
 
 ## Directory Structure
 ```
-..
+.
 ├── README.md
-├── Task-1
-│   ├── iitkcoin-190349.db
-│   └── main.go
-├── Task-2
-│   ├── database.go
-│   ├── main.go
+├── controllers
 │   └── routes.go
+├── database
+│   └── database.go
 ├── go.mod
-└── go.sum
+├── go.sum
+├── iitkcoin-190349.db
+├── main.go
+└── models
+    └── models.go
 
-2 directories, 8 files
+3 directories, 8 files
 ```
 
 ## Usage
 ```bash
 cd $GOPATH/src/github.com/<username>
 git clone https://github.com/gurbaaz27/iitk-coin.git
-go get github.com/mattn/go-sqlite3
-cd Task-<no>/
+cd repo
 go run main.go
 ```
