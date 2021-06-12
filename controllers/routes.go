@@ -51,7 +51,6 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 	switch r.Method {
 	case "GET":
-		// Get(MyDB)
 		w.Write([]byte("Welcome to Signup Page!\nSend a POST request to signup in iitkcoin.\n"))
 
 	case "POST":

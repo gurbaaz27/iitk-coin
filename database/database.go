@@ -28,22 +28,22 @@ func InitialiseDB() {
 }
 
 func AddUser(user models.User) {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.MyDB")
+	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
-	if UserExists(user) {
+	if !UserExists(user) {
 		statement, err := MyDB.Prepare("INSERT INTO User (rollno, name, password) VALUES (?, ?, ?)")
 		checkErr(err)
 		statement.Exec(user.Rollno, user.Name, HashPwd(user.Password))
 
-		log.Printf("New user details : rollno = %d, name = %s added in database iitkcoin-190349.MyDB\n", user.Rollno, user.Name)
+		log.Printf("New user details : rollno = %d, name = %s added in database iitkcoin-190349.db\n", user.Rollno, user.Name)
 	} else {
 		log.Println("User with same roll no. already exists!")
 	}
 }
 
 func UserValid(user models.LoginRequest) bool {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.MyDB")
+	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
 	rows, err := MyDB.Query("SELECT * from User")
@@ -64,7 +64,10 @@ func UserValid(user models.LoginRequest) bool {
 }
 
 func UserExists(user models.User) bool {
-	err := MyDB.QueryRow("SELECT rollno FROM User WHERE rollno = ?").Scan(&user.Rollno)
+	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+	checkErr(err)
+	defer MyDB.Close()
+	err = MyDB.QueryRow("SELECT rollno FROM User WHERE rollno = ?").Scan(&user.Rollno)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			log.Print(err)
