@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -26,6 +27,10 @@ func HandleRequests() {
 	http.HandleFunc("/signup", signUp)
 	http.HandleFunc("/login", logIn)
 	http.Handle("/secretpage", isLogin(secretPage))
+
+	http.HandleFunc("/reward", reward)
+	http.HandleFunc("/transfer", transfer)
+	http.HandleFunc("/balance", balance)
 	log.Println("Serving at 8080")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -148,4 +153,99 @@ func isLogin(endpoint func(http.ResponseWriter, *http.Request)) http.Handler {
 
 		endpoint(w, r)
 	})
+}
+
+func balance(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/balance" {
+		http.NotFound(w, r)
+		return
+	}
+
+	fmt.Println(r.URL.Path)
+	switch r.Method {
+	case "GET":
+		rollnos, ok := r.URL.Query()["rollno"]
+
+		if !ok || len(rollnos[0]) < 1 {
+			log.Println("Url Param 'rollno' is missing")
+			return
+		}
+
+		rollno, err := strconv.ParseInt(rollnos[0], 10, 64)
+		checkErr(err)
+		coins := database.ReturnBalance(rollno)
+		if coins >= 0 {
+			w.Write([]byte("Rollno : " + rollnos[0] + " Balance : " + strconv.Itoa(int(coins)) + " coins"))
+		} else {
+			w.Write([]byte("User does not exist!"))
+		}
+	case "POST":
+		w.Write([]byte("Try Get Request.\n"))
+	}
+}
+
+func reward(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/reward" {
+		http.NotFound(w, r)
+		return
+	}
+
+	fmt.Println(r.URL.Path)
+
+	switch r.Method {
+	case "GET":
+		w.Write([]byte("Welcome to Reward Page!\nSend a POST request to award coins to user.\n"))
+
+	case "POST":
+		var rewardPayload models.RewardPayload
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&rewardPayload)
+		checkErr(err)
+		log.Println(rewardPayload)
+		res := database.UpdateBalance(rewardPayload)
+		if res {
+			log.Printf("Coins awarded to rollno = %d , amounting = %d", rewardPayload.Rollno, rewardPayload.Coins)
+		} else {
+			log.Printf("Reward coins failed")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(rewardPayload)
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
+	}
+}
+
+func transfer(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/transfer" {
+		http.NotFound(w, r)
+		return
+	}
+
+	fmt.Println(r.URL.Path)
+
+	switch r.Method {
+	case "GET":
+		w.Write([]byte("Welcome to Transfer Page!\nSend a POST request to tranfer coins peer to peer (P2P).\n"))
+
+	case "POST":
+		var transferPayload models.TransferPayload
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&transferPayload)
+		checkErr(err)
+		log.Println(transferPayload)
+		res := database.TransferCoins(transferPayload)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(transferPayload)
+		if res {
+			log.Printf("Coins transfered from rollno = %d to rollno = %d amounting = %d", transferPayload.SenderRollno, transferPayload.ReceiverRollno, transferPayload.Coins)
+		} else {
+			log.Printf("Transaction failed!")
+		}
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
+	}
 }

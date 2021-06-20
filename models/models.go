@@ -24,3 +24,14 @@ type LoginToken struct {
 	Name  string `json:"name"`
 	Token string `json:"token"`
 }
+
+type RewardPayload struct {
+	Rollno int64 `json:"rollno,string"`
+	Coins  int64 `json:"coins,string"`
+}
+
+type TransferPayload struct {
+	SenderRollno   int64 `json:"sender,string"`
+	ReceiverRollno int64 `json:"receiver,string"`
+	Coins          int64 `json:"coins,string"`
+}

@@ -42,3 +42,29 @@ git clone https://github.com/gurbaaz27/iitk-coin.git
 cd repo
 go run main.go
 ```
+
+## Endpoints
+
+- `/login`
+- `/signup`
+- `/secretpage`
+- `/reward`
+- `/transfer`
+- `/balance`
+
+
+## Models
+
+-  User
+	Name     string `json:"name"`
+	Rollno   int64  `json:"rollno,string"`
+	Password string `json:"password"`
+
+- RewardPayload
+    Rollno int64 `json:"rollno,string"`
+	Coins  int64 `json:"coins,string"`
+
+- TransferPayload
+    SenderRollno   int64 `json:"sender,string"`
+	ReceiverRollno int64 `json:"receiver,string"`
+	Coins          int64 `json:"coins,string"`
