@@ -7,6 +7,8 @@ This repository contains the code for the IITK Coin project done by Gurbaaz Sing
 - [Development Environment](#development-environment)
 - [Directory Structure](#directory-structure)
 - [Usage](#usage)
+- [Endpoints](#endpoints)
+- [Models](#models)
 
 ## Development Environment
 
@@ -51,14 +53,43 @@ Output should look like
 ```
 
 ## Endpoints
+POST requests take place via `JSON` requests. A typical usage would look like
 
-- `/login` : POST
-- `/signup` : POST
-- `/secretpage` : GET
-- `/reward` : POST
-- `/transfer` : POST
-- `/balance` : GET
+```bash
+curl -d '<json-request>' -H 'Content-Type: application/json' http://localhost:8080/<endpoint>
+```
 
+- `/login` : `POST`
+```json
+{"name":"<name>", "rollno":"<rollno>", "password":"<password>"}
+```
+
+- `/signup` : `POST`
+```json
+{"rollno":"<rollno>", "password":"<password>"}
+```
+
+- `/reward` : `POST`
+```json
+{"rollno":"<rollno>", "coins":"<coins>"}
+```
+
+- `/transfer` : `POST`
+```json
+{"sender":"<senderRollNo>", "receiver":"<receiverRollNo>", "coins":"<coins>"}
+```
+
+GET requests:
+
+- `/secretpage` : `GET`
+```bash
+curl http://localhost:8080/secretpage
+```
+
+- `/balance` : `GET`
+```bash
+curl http://localhost:8080/balance?rollno=<rollno>
+```
 
 ## Models
 
@@ -71,13 +102,13 @@ Output should look like
 
 - RewardPayload
 ```go
-    Rollno int64 `json:"rollno,string"`
+    	Rollno int64 `json:"rollno,string"`
 	Coins  int64 `json:"coins,string"`
 ```
 
 - TransferPayload
 ```go
-    SenderRollno   int64 `json:"sender,string"`
+    	SenderRollno   int64 `json:"sender,string"`
 	ReceiverRollno int64 `json:"receiver,string"`
 	Coins          int64 `json:"coins,string"`
 ```
