@@ -43,28 +43,41 @@ cd repo
 go run main.go
 ```
 
+Output should look like
+
+```
+2021/06/20 23:59:40 Database opened and table created (if not existed) successfully!
+2021/06/20 23:59:40 Serving at 8080
+```
+
 ## Endpoints
 
-- `/login`
-- `/signup`
-- `/secretpage`
-- `/reward`
-- `/transfer`
-- `/balance`
+- `/login` : POST
+- `/signup` : POST
+- `/secretpage` : GET
+- `/reward` : POST
+- `/transfer` : POST
+- `/balance` : GET
 
 
 ## Models
 
 -  User
+```go
 	Name     string `json:"name"`
 	Rollno   int64  `json:"rollno,string"`
 	Password string `json:"password"`
+```
 
 - RewardPayload
+```go
     Rollno int64 `json:"rollno,string"`
 	Coins  int64 `json:"coins,string"`
+```
 
 - TransferPayload
+```go
     SenderRollno   int64 `json:"sender,string"`
 	ReceiverRollno int64 `json:"receiver,string"`
 	Coins          int64 `json:"coins,string"`
+```
