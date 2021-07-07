@@ -61,9 +61,13 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		err := decoder.Decode(&newUser)
 		checkErr(err)
 		log.Println(newUser)
-		database.AddUser(newUser)
+		res := database.AddUser(newUser)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(newUser)
+		if res {
+			json.NewEncoder(w).Encode("Signup Success")
+		} else {
+			json.NewEncoder(w).Encode("Signup Failure")
+		}
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -171,13 +175,12 @@ func balance(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rollno, err := strconv.ParseInt(rollnos[0], 10, 64)
-		checkErr(err)
+		rollno := rollnos[0]
 		coins := database.ReturnBalance(rollno)
 		if coins >= 0 {
-			w.Write([]byte("Rollno : " + rollnos[0] + " Balance : " + strconv.Itoa(int(coins)) + " coins"))
+			w.Write([]byte("Rollno : " + rollno + "\n Balance : " + strconv.Itoa(int(coins)) + " coins\n"))
 		} else {
-			w.Write([]byte("User does not exist!"))
+			w.Write([]byte("User does not exist!\n"))
 		}
 	case "POST":
 		w.Write([]byte("Try Get Request.\n"))
@@ -202,14 +205,15 @@ func reward(w http.ResponseWriter, r *http.Request) {
 		err := decoder.Decode(&rewardPayload)
 		checkErr(err)
 		log.Println(rewardPayload)
-		res := database.UpdateBalance(rewardPayload)
+		res := database.RewardMoney(rewardPayload)
+		w.Header().Set("Content-Type", "application/json")
 		if res {
-			log.Printf("Coins awarded to rollno = %d , amounting = %d", rewardPayload.Rollno, rewardPayload.Coins)
+			log.Printf("Coins awarded to rollno = %s , amounting = %d", rewardPayload.Rollno, rewardPayload.Coins)
+			json.NewEncoder(w).Encode("Reward Success")
 		} else {
 			log.Printf("Reward coins failed")
+			json.NewEncoder(w).Encode("Reward Failed")
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(rewardPayload)
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -237,11 +241,12 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 		log.Println(transferPayload)
 		res := database.TransferCoins(transferPayload)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(transferPayload)
 		if res {
-			log.Printf("Coins transfered from rollno = %d to rollno = %d amounting = %d", transferPayload.SenderRollno, transferPayload.ReceiverRollno, transferPayload.Coins)
+			log.Printf("Coins transfered from rollno = %s to rollno = %s amounting = %d", transferPayload.SenderRollno, transferPayload.ReceiverRollno, transferPayload.Coins)
+			json.NewEncoder(w).Encode("Transfer Success")
 		} else {
 			log.Printf("Transaction failed!")
+			json.NewEncoder(w).Encode("Transfer Failed")
 		}
 
 	default:

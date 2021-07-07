@@ -11,6 +11,8 @@ import (
 )
 
 var MyDB *sql.DB
+var WalletDB *sql.DB
+var TransactionHistoryDB *sql.DB
 
 func checkErr(err error) {
 	if err != nil {
@@ -19,32 +21,59 @@ func checkErr(err error) {
 }
 
 func InitialiseDB() {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+	MyDB, err := sql.Open("sqlite3", "./user-database-190349.db")
+	checkErr(err)
+	WalletDB, err := sql.Open("sqlite3", "./wallet-database-190349.db")
+	checkErr(err)
+	TransactionHistoryDB, err := sql.Open("sqlite3", "./transaction-database-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
-	statement, err := MyDB.Prepare("CREATE TABLE IF NOT EXISTS User (rollno INTEGER, name TEXT, password TEXT, coins INTEGER)")
+	defer WalletDB.Close()
+	defer TransactionHistoryDB.Close()
+
+	statement, err := MyDB.Prepare("CREATE TABLE IF NOT EXISTS User (rollno TEXT, name TEXT, password TEXT)")
 	checkErr(err)
-	log.Println("Database opened and table created (if not existed) successfully!")
+	log.Println("User Database opened and table created (if not existed) successfully!")
+	statement.Exec()
+
+	statement, err = WalletDB.Prepare("CREATE TABLE IF NOT EXISTS Wallet (rollno TEXT, coins INTEGER)")
+	checkErr(err)
+	log.Println("Wallet Database opened and table created (if not existed) successfully!")
+	statement.Exec()
+
+	statement, err = TransactionHistoryDB.Prepare("CREATE TABLE IF NOT EXISTS TransactionHistory (sender TEXT, receiver TEXT, coins INTEGER, remarks TEXT)")
+	checkErr(err)
+	log.Println("Wallet Database opened and table created (if not existed) successfully!")
 	statement.Exec()
 }
 
-func AddUser(user models.User) {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+func AddUser(user models.User) bool {
+	MyDB, err := sql.Open("sqlite3", "./user-database-190349.db")
+	checkErr(err)
+	WalletDB, err := sql.Open("sqlite3", "./wallet-database-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
+	defer WalletDB.Close()
 	if !UserExists(user) {
-		statement, err := MyDB.Prepare("INSERT INTO User (rollno, name, password, coins) VALUES (?, ?, ?, ?)")
+		statement, err := MyDB.Prepare("INSERT INTO User (rollno, name, password) VALUES (?, ?, ?)")
 		checkErr(err)
-		statement.Exec(user.Rollno, user.Name, HashPwd(user.Password), 0)
+		statement.Exec(user.Rollno, user.Name, HashPwd(user.Password))
 
-		log.Printf("New user details : rollno = %d, name = %s added in database iitkcoin-190349.db\n", user.Rollno, user.Name)
+		statement, err = WalletDB.Prepare("INSERT INTO Wallet (rollno, coins) VALUES (?, ?)")
+		checkErr(err)
+		statement.Exec(user.Rollno, 0)
+
+		log.Printf("New user details : rollno = %s, name = %s added in database user-database-190349.db\n", user.Rollno, user.Name)
+		log.Printf("Wallet for user initiated in database wallet-database-190349.db\n")
+		return true
 	} else {
 		log.Println("User with same roll no. already exists!")
+		return false
 	}
 }
 
 func UserValid(user models.LoginRequest) bool {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+	MyDB, err := sql.Open("sqlite3", "./user-database-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
 	rows, err := MyDB.Query("SELECT * from User")
@@ -52,11 +81,10 @@ func UserValid(user models.LoginRequest) bool {
 	defer rows.Close()
 
 	for rows.Next() {
-		var rollno int64
+		var rollno string
 		var name string
 		var password string
-		var coins int64
-		err = rows.Scan(&rollno, &name, &password, &coins)
+		err = rows.Scan(&rollno, &name, &password)
 		checkErr(err)
 		if user.Rollno == rollno && CheckPasswords(password, user.Password) {
 			return true
@@ -67,7 +95,7 @@ func UserValid(user models.LoginRequest) bool {
 }
 
 func UserExists(user models.User) bool {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+	MyDB, err := sql.Open("sqlite3", "./user-database-190349.db")
 	checkErr(err)
 	defer MyDB.Close()
 	err = MyDB.QueryRow("SELECT rollno FROM User WHERE rollno = ?", user.Rollno).Scan(&user.Rollno)
@@ -101,12 +129,12 @@ func CheckPasswords(hashedPwd string, pwd string) bool {
 	return true
 }
 
-func ReturnBalance(rollno int64) int64 {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+func ReturnBalance(rollno string) int64 {
+	WalletDB, err := sql.Open("sqlite3", "./wallet-database-190349.db")
 	checkErr(err)
-	defer MyDB.Close()
+	defer WalletDB.Close()
 	var coins int64
-	err = MyDB.QueryRow("SELECT coins FROM User WHERE rollno = ?", rollno).Scan(&coins)
+	err = WalletDB.QueryRow("SELECT coins FROM Wallet WHERE rollno = ?", rollno).Scan(&coins)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			log.Print(err)
@@ -116,29 +144,39 @@ func ReturnBalance(rollno int64) int64 {
 	return coins
 }
 
-func UpdateBalance(user models.RewardPayload) bool {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+func RewardMoney(user models.RewardPayload) bool {
+	WalletDB, err := sql.Open("sqlite3", "./wallet-database-190349.db")
 	checkErr(err)
-	defer MyDB.Close()
+	defer WalletDB.Close()
 	log.Printf("Updating the balance!")
-	statement, err := MyDB.Prepare("UPDATE User SET coins = coins + ? WHERE rollno = ?")
+	statement, err := WalletDB.Prepare("UPDATE Wallet SET coins = coins + ? WHERE rollno = ?")
 	if err != nil {
 		return false
 	}
 	statement.Exec(user.Coins, user.Rollno)
+
+	TransactionHistoryDB, err := sql.Open("sqlite3", "./transaction-database-190349.db")
+	checkErr(err)
+	defer TransactionHistoryDB.Close()
+	statement, err = TransactionHistoryDB.Prepare("INSERT INTO TransactionHistory (sender, receiver, coins, remarks) VALUES (?, ?, ?, ?)")
+	checkErr(err)
+	statement.Exec("000007", user.Rollno, user.Coins, "Reward")
+
 	return true
 }
 
 func TransferCoins(user models.TransferPayload) bool {
-	MyDB, err := sql.Open("sqlite3", "./iitkcoin-190349.db")
+	WalletDB, err := sql.Open("sqlite3", "./wallet-database-190349.db")
 	checkErr(err)
-	defer MyDB.Close()
+	defer WalletDB.Close()
 
 	ctx := context.Background()
-	tx, err := MyDB.BeginTx(ctx, nil)
+	tx, err := WalletDB.BeginTx(ctx, nil)
 	checkErr(err)
 
-	res, err := tx.ExecContext(ctx, "UPDATE User SET coins = coins - ? WHERE rollno=? AND coins - ? >= 0", user.Coins, user.SenderRollno, user.Coins)
+	user.Coins = DeductTax(user)
+
+	res, err := tx.ExecContext(ctx, "UPDATE Wallet SET coins = coins - ? WHERE rollno=? AND coins - ? >= 0", user.Coins, user.SenderRollno, user.Coins)
 	checkErr(err)
 	rows_affected, err := res.RowsAffected()
 	checkErr(err)
@@ -148,7 +186,7 @@ func TransferCoins(user models.TransferPayload) bool {
 		return false
 	}
 
-	res, err = tx.ExecContext(ctx, "UPDATE User SET coins = coins + ? WHERE rollno=?", user.Coins, user.ReceiverRollno, user.Coins)
+	res, err = tx.ExecContext(ctx, "UPDATE Wallet SET coins = coins + ? WHERE rollno=?", user.Coins, user.ReceiverRollno, user.Coins)
 	checkErr(err)
 	rows_affected, err = res.RowsAffected()
 	checkErr(err)
@@ -161,5 +199,29 @@ func TransferCoins(user models.TransferPayload) bool {
 	err = tx.Commit()
 	checkErr(err)
 
+	TransactionHistoryDB, err := sql.Open("sqlite3", "./transaction-database-190349.db")
+	checkErr(err)
+	defer TransactionHistoryDB.Close()
+	statement, err := TransactionHistoryDB.Prepare("INSERT INTO TransactionHistory (sender, receiver, coins, remarks) VALUES (?, ?, ?, ?)")
+	checkErr(err)
+	statement.Exec(user.SenderRollno, user.ReceiverRollno, user.Coins, "Transfer")
 	return true
 }
+
+func DeductTax(user models.TransferPayload) int64 {
+	if (user.SenderRollno[0:2] == user.ReceiverRollno[0:2]) && (len(user.SenderRollno) == len(user.ReceiverRollno)) {
+		return int64(float64(user.Coins) * 0.98)
+	} else {
+		return int64(float64(user.Coins) * 0.67)
+	}
+}
+
+// func UpdateTransactionHistory() {
+// 	TransactionHistoryDB, err := sql.Open("sqlite3", "./transaction-database-190349.db")
+// 	checkErr(err)
+// 	defer TransactionHistoryDB.Close()
+
+// 	statement, err := TransactionHistoryDB.Prepare("INSERT INTO Transaction (sender, receiver, amount, status) VALUES (?, ?, ?, ?)")
+// 	checkErr(err)
+// 	statement.Exec(000007, user.Rollno, user.Coins, 0)
+// }
