@@ -96,19 +96,19 @@ curl http://localhost:8080/balance?rollno=<rollno>
 -  User
 ```go
 	Name     string `json:"name"`
-	Rollno   string  `json:"rollno,string"`
+	Rollno   string  `json:"rollno"`
 	Password string `json:"password"`
 ```
 
 - RewardPayload
 ```go
-	Rollno string `json:"rollno,string"`
+	Rollno string `json:"rollno"`
 	Coins  int64 `json:"coins,string"`
 ```
 
 - TransferPayload
 ```go
-	SenderRollno   string `json:"sender,string"`
-	ReceiverRollno string `json:"receiver,string"`
+	SenderRollno   string `json:"sender"`
+	ReceiverRollno string `json:"receiver"`
 	Coins          int64 `json:"coins,string"`
 ```

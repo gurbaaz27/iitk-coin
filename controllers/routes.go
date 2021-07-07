@@ -29,19 +29,19 @@ func HandleRequests() {
 	http.Handle("/secretpage", isLogin(secretPage))
 
 	http.HandleFunc("/reward", reward)
-	http.HandleFunc("/transfer", transfer)
-	http.HandleFunc("/balance", balance)
+	http.Handle("/transfer", isLogin(transfer))
+	http.Handle("/balance", isLogin(balance))
 	log.Println("Serving at 8080")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Welcome to Home Page of IITK Coin. There are 3 useful endpoints are:- /signup, /login, /secretpage")
+	io.WriteString(w, "Welcome to Home Page of IITK Coin. There are 3 useful endpoints are:- /signup, /login, /secretpage\n")
 }
 
 func secretPage(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Congrats! The fact that you have reached here is proof that you are successfully logged in!")
+	io.WriteString(w, "Congrats! The fact that you have reached here is proof that you are successfully logged in!\n")
 }
 
 func signUp(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +94,7 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 		err := decoder.Decode(&loginRequest)
 		checkErr(err)
 		log.Println(loginRequest)
-		log.Println(" user valid :", database.UserValid(loginRequest))
+		log.Println("User valid : ", database.UserValid(loginRequest))
 		if database.UserValid(loginRequest) {
 			expirationTime := time.Now().Add(15 * time.Minute)
 			claims := &models.CustomClaims{
@@ -107,15 +107,15 @@ func logIn(w http.ResponseWriter, r *http.Request) {
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 			tokenString, err := token.SignedString(jwtKey)
 			checkErr(err)
-			log.Println("Token is :-", tokenString)
+			log.Println("Token is: ", tokenString)
 			http.SetCookie(w, &http.Cookie{
 				Name:    "token",
 				Value:   tokenString,
 				Expires: expirationTime,
 			})
-			w.Write([]byte("Successfully logged in! #andhalogin\n"))
+			w.Write([]byte("Successfully logged in!\n"))
 		} else {
-			w.Write([]byte("F....Invalid user credentials.\n"))
+			w.Write([]byte("Invalid user credentials. Please try again.\n"))
 		}
 
 	default:
@@ -166,6 +166,7 @@ func balance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(r.URL.Path)
+
 	switch r.Method {
 	case "GET":
 		rollnos, ok := r.URL.Query()["rollno"]
@@ -176,11 +177,25 @@ func balance(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rollno := rollnos[0]
-		coins := database.ReturnBalance(rollno)
-		if coins >= 0 {
-			w.Write([]byte("Rollno : " + rollno + "\n Balance : " + strconv.Itoa(int(coins)) + " coins\n"))
-		} else {
-			w.Write([]byte("User does not exist!\n"))
+
+		cookie, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		tknStr := cookie.Value
+		jwtClaims, _ := extractClaims(tknStr)
+		if jwtClaims["rollno"] == rollno {
+			coins := database.ReturnBalance(rollno)
+			if coins >= 0 {
+				w.Write([]byte("Rollno : " + rollno + "\n Balance : " + strconv.Itoa(int(coins)) + " coins\n"))
+			} else {
+				w.Write([]byte("User does not exist!\n"))
+			}
 		}
 	case "POST":
 		w.Write([]byte("Try Get Request.\n"))
@@ -239,18 +254,48 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 		err := decoder.Decode(&transferPayload)
 		checkErr(err)
 		log.Println(transferPayload)
-		res := database.TransferCoins(transferPayload)
-		w.Header().Set("Content-Type", "application/json")
-		if res {
-			log.Printf("Coins transfered from rollno = %s to rollno = %s amounting = %d", transferPayload.SenderRollno, transferPayload.ReceiverRollno, transferPayload.Coins)
-			json.NewEncoder(w).Encode("Transfer Success")
-		} else {
-			log.Printf("Transaction failed!")
-			json.NewEncoder(w).Encode("Transfer Failed")
+		cookie, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		tknStr := cookie.Value
+		jwtClaims, _ := extractClaims(tknStr)
+		if jwtClaims["rollno"] == transferPayload.SenderRollno {
+			res := database.TransferCoins(transferPayload)
+			w.Header().Set("Content-Type", "application/json")
+			if res {
+				log.Printf("Coins transfered from rollno = %s to rollno = %s amounting = %d", transferPayload.SenderRollno, transferPayload.ReceiverRollno, transferPayload.Coins)
+				json.NewEncoder(w).Encode("Transfer Success")
+			} else {
+				log.Printf("Transaction failed!")
+				json.NewEncoder(w).Encode("Transfer Failed")
+			}
 		}
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte(http.StatusText(http.StatusNotImplemented)))
+	}
+}
+
+func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil {
+		return nil, false
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, true
+	} else {
+		log.Printf("Invalid JWT Token")
+		return nil, false
 	}
 }
