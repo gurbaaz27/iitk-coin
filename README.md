@@ -1,7 +1,12 @@
 # IITK Coin
 ## SnT Project 2021, Programming Club 
 
-This repository contains the code for the IITK Coin project done by Gurbaaz Singh Nandra.
+This repository contains the code for the IITK Coin project done so far.
+
+### Relevant Links
+
+- [Midterm Evaluation presentation](https://docs.google.com/presentation/d/1kriN-7A3v1RlXUDL5NETX3roJKRMJInptkWofIxY8dg/edit?usp=sharing)
+- [Midterm Documentation](https://docs.google.com/document/d/1bvOWH4k0U-l2pQ1jLWIDzOkJ2wbHNW4jJw7tMWkUV6o/edit?usp=sharing)
 
 ## Table Of Content
 - [Development Environment](#development-environment)
@@ -42,13 +47,18 @@ This repository contains the code for the IITK Coin project done by Gurbaaz Sing
 cd $GOPATH/src/github.com/<username>
 git clone https://github.com/gurbaaz27/iitk-coin.git
 cd repo
-go run main.go
+go run main.go     
+#, or build the program and run the executable
+go build
+./iitk-coin
 ```
 
 Output should look like
 
 ```
-2021/06/20 23:59:40 Database opened and table created (if not existed) successfully!
+2021/06/20 23:59:40 User Database opened and table created (if not existed) successfully!
+2021/06/20 23:59:40 Transaction Database opened and table created (if not existed) successfully!
+2021/06/20 23:59:40 Wallet Database opened and table created (if not existed) successfully!
 2021/06/20 23:59:40 Serving at 8080
 ```
 
