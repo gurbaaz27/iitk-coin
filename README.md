@@ -20,8 +20,8 @@ This repository contains the code for the IITK Coin project done so far.
 ```bash
 - go version: go1.16.4 linux/amd64    # https://golang.org/dl/
 - system: 5.4.72-microsoft-standard-WSL2 x86_64    # https://docs.microsoft.com/en-us/windows/wsl/install-win10
-- text editor: VSCode    # https://code.visualstudio.com/download
-- terminal: Zsh     # https://code.visualstudio.com/download
+- text editor: VSCode    	# https://code.visualstudio.com/download
+- terminal: Zsh     		# https://ohmyz.sh/
 ```
 
 ## Directory Structure
