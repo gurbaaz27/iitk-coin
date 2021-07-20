@@ -3,8 +3,6 @@
 
 This repository contains the code for the IITKCoin, a vision of a pseudo-currency for use in the IITK Campus.
 
- project done so far.
-
 ### Relevant Links
 
 - [Midterm Evaluation presentation](https://docs.google.com/presentation/d/1kriN-7A3v1RlXUDL5NETX3roJKRMJInptkWofIxY8dg/edit?usp=sharing)
