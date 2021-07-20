@@ -1,7 +1,9 @@
 # IITK Coin
 ## SnT Project 2021, Programming Club 
 
-This repository contains the code for the IITK Coin project done so far.
+This repository contains the code for the IITKCoin, a vision of a pseudo-currency for use in the IITK Campus.
+
+ project done so far.
 
 ### Relevant Links
 
