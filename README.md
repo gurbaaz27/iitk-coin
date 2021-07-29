@@ -5,6 +5,7 @@ This repository contains the code for the IITKCoin, a vision of a pseudo-currenc
 
 ### Relevant Links
 
+- [Final Submission Drive](https://drive.google.com/drive/folders/1N93J_1ouR1AXctIZZkek0YMD5_LY0LVM?usp=sharing)
 - [Midterm Evaluation presentation](https://docs.google.com/presentation/d/1kriN-7A3v1RlXUDL5NETX3roJKRMJInptkWofIxY8dg/edit?usp=sharing)
 - [Midterm Documentation](https://docs.google.com/document/d/1bvOWH4k0U-l2pQ1jLWIDzOkJ2wbHNW4jJw7tMWkUV6o/edit?usp=sharing)
 
@@ -27,19 +28,25 @@ This repository contains the code for the IITKCoin, a vision of a pseudo-currenc
 ## Directory Structure
 ```
 .
+├── Dockerfile
+├── LICENSE
 ├── README.md
 ├── controllers
-│   └── routes.go
+│   └── routes.go
 ├── database
-│   └── database.go
+│   └── database.go
 ├── go.mod
 ├── go.sum
-├── iitkcoin-190349.db
+├── iitk-coin
 ├── main.go
-└── models
-    └── models.go
+├── models
+│   └── models.go
+├── redeem-database-190349.db
+├── transaction-database-190349.db
+├── user-database-190349.db
+└── wallet-database-190349.db
 
-3 directories, 8 files
+3 directories, 14 files
 ```
 
 ## Usage
@@ -51,6 +58,9 @@ go run main.go
 #, or build the program and run the executable
 go build
 ./iitk-coin
+# , or build docker image and run docker container
+docker build -t iitk-coin .
+docker run --rm -it -p 8080:8080 iitk-coin
 ```
 
 Output should look like
